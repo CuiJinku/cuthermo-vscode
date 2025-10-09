@@ -1,0 +1,87 @@
+{
+  "name": "cuthermo",
+  "displayName": "cuThermo",
+  "description": "",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cuthermo.checkEnv",
+        "title": "cuThermo: Check Environment"
+      },
+      {
+        "command": "cuthermo.installBundledSo",
+        "title": "cuThermo: Install Bundled cuThermostat.so to Workspace"
+      },
+      {
+        "command": "cuthermo.runProfile",
+        "title": "cuThermo: Run Current Target"
+      }
+    ],
+    "configuration": {
+      "title": "cuThermo",
+      "properties": {
+        "cuthermo.soPath": {
+          "type": "string",
+          "default": "${workspaceFolder}/tools/cuThermostat/cuThermostat.so",
+          "description": "Path to cuThermostat.so (NVBit tool). If empty, the extension will use its bundled asset when available."
+        },
+        "cuthermo.execPath": {
+          "type": "string",
+          "default": "${workspaceFolder}/test-apps/vectoradd/vectoradd",
+          "description": "Path to CUDA executable (we'll run it with LD_PRELOAD later)."
+        },
+        "cuthermo.args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Arguments passed to the CUDA executable"
+        },
+        "cuthermo.workDir": {
+          "type": "string",
+          "default": "${workspaceFolder}/test-apps/vectoradd",
+          "description": "Working directory where output files appear."
+        },
+        "cuthermo.outputGlob": {
+          "type": "string",
+          "default": "output_*.txt",
+          "description": "Glob pattern for cuThermo text outputs"
+        },
+        "cuthermo.timeoutSec": {
+          "type": "number",
+          "default": 180,
+          "description": "Kill the run if it exceeds this many seconds"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.104.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
+    "eslint": "^9.36.0",
+    "typescript": "^5.9.3",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
