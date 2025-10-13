@@ -2,8 +2,9 @@ import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { getCfg, workspaceFolderFor, resolvePathSetting } from './util';
+// import { getCfg, workspaceFolderFor, resolvePathSetting } from './util';
 import { runCuThermo } from './runner';
+import { workspaceFolderFor, resolveWorkDir, resolvePathSetting } from './util';
 
 function runSync(cmd: string, args: string[] = [], cwd?: string) {
 	try {
@@ -30,6 +31,12 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.commands.registerCommand('cuthermo.checkEnv', async () => {
 			const folder = workspaceFolderFor();
+			// inside your checkEnv handler, after other checks
+			out.appendLine('\n[Debug] Effective settings:');
+			out.appendLine(`  soPath    = ${resolvePathSetting('cuthermo.soPath', folder)}`);
+			out.appendLine(`  execPath  = ${resolvePathSetting('cuthermo.execPath', folder)}`);
+			out.appendLine(`  workDir   = ${resolveWorkDir(folder)}`);
+			out.appendLine(`  outputGlob= ${vscode.workspace.getConfiguration('cuthermo').get('outputGlob')}`);
 			if (!folder) {
 				vscode.window.showWarningMessage('Open a folder/workspace first.');
 				return;
@@ -87,6 +94,8 @@ export function activate(context: vscode.ExtensionContext) {
 				out.appendLine('    - Update setting: cuthermo.soPath');
 			}
 
+
+
 			out.show(true);
 			vscode.window.showInformationMessage('cuThermo: Environment check finished. See the “cuThermo” output channel.');
 		})
@@ -124,6 +133,33 @@ export function activate(context: vscode.ExtensionContext) {
 			} catch (e: any) {
 				vscode.window.showErrorMessage(`Failed to install .so: ${e?.message || e}`);
 			}
+		})
+	);
+
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('cuthermo.setWorkDir', async () => {
+			const folder = workspaceFolderFor();
+			if (!folder) {
+				vscode.window.showWarningMessage('Open a folder/workspace first.');
+				return;
+			}
+			const pick = await vscode.window.showOpenDialog({
+				canSelectFiles: false,
+				canSelectFolders: true,
+				canSelectMany: false,
+				openLabel: 'Select Work Directory',
+				defaultUri: folder.uri
+			});
+			if (!pick || !pick[0]) return;
+
+			const dest = pick[0].fsPath;
+			await vscode.workspace.getConfiguration('cuthermo').update(
+				'workDir',
+				dest.replace(folder.uri.fsPath, '${workspaceFolder}'),
+				vscode.ConfigurationTarget.Workspace
+			);
+			vscode.window.showInformationMessage(`cuThermo workDir set to: ${dest}`);
 		})
 	);
 

@@ -24,6 +24,10 @@
       {
         "command": "cuthermo.runProfile",
         "title": "cuThermo: Run Current Target"
+      },
+      {
+        "command": "cuthermo.setWorkDir",
+        "title": "cuThermo: Set Work Directory"
       }
     ],
     "configuration": {
@@ -49,7 +53,7 @@
         },
         "cuthermo.workDir": {
           "type": "string",
-          "default": "${workspaceFolder}/test-apps/vectoradd",
+          "default": "",
           "description": "Working directory where output files appear."
         },
         "cuthermo.outputGlob": {

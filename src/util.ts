@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
+import * as fs from 'fs';
 
 export function getCfg<T>(key: string, fallback?: T): T {
     return vscode.workspace
@@ -31,4 +32,17 @@ export function resolvePathSetting(
     folder?: vscode.WorkspaceFolder
 ): string {
     return path.resolve(resolveVars(getCfg<string>(key) || "", folder));
+}
+
+export function resolveWorkDir(folder?: vscode.WorkspaceFolder): string {
+  const configured = resolvePathSetting('cuthermo.workDir', folder);
+  if (configured && fs.existsSync(configured)) return configured;
+
+  const execPath = resolvePathSetting('cuthermo.execPath', folder);
+  if (execPath && fs.existsSync(execPath)) return path.dirname(execPath);
+
+  if (folder) return folder.uri.fsPath;
+
+  // No workspace open and no settings to infer from:
+  throw new Error('No workspace folder open and no workDir/execPath set.');
 }

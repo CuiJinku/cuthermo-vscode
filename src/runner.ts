@@ -3,13 +3,15 @@ import * as cp from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import { glob } from 'glob';
-import { getCfg, resolvePathSetting, workspaceFolderFor } from './util';
+import { getCfg, resolvePathSetting, workspaceFolderFor, resolveWorkDir } from './util';
 
 export interface RunResult {
     outputFile?: string;
     stdout: string;
     stderr: string;
 }
+
+
 
 function newest(files: string[]): string | undefined {
     if (!files.length) return undefined;
@@ -23,7 +25,7 @@ export async function runCuThermo(targetUri?: vscode.Uri): Promise<RunResult> {
     if (!folder) throw new Error('Open a workspace/folder first.');
 
     const soPath = resolvePathSetting('cuthermo.soPath', folder);
-    const workDir = resolvePathSetting('cuthermo.workDir', folder);
+    const workDir = resolveWorkDir(folder);          // ← auto-detect here
     const execPath = resolvePathSetting('cuthermo.execPath', folder);
     const args = getCfg<string[]>('cuthermo.args', []);
     const outputGlob = getCfg<string>('cuthermo.outputGlob', 'output_*.txt');
