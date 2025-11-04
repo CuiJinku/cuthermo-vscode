@@ -32,8 +32,28 @@
       {
         "command": "cuthermo.runInTerminal",
         "title": "cuThermo: Run in Terminal"
+      },
+      {
+        "command": "cuthermo.openHeatmap",
+        "title": "cuThermo: Open Heatmap Viewer"
       }
     ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "cuthermo.openHeatmap",
+          "when": "resourceFilename =~ /^output_.*\\.txt$/",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "cuthermo.openHeatmap",
+          "when": "resourceFilename =~ /^output_.*\\.txt$/",
+          "group": "navigation@10"
+        }
+      ]
+    },
     "configuration": {
       "title": "cuThermo",
       "properties": {

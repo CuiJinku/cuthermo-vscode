@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as cp from "child_process";
 import * as fs from "fs";
 import * as path from "path";
-// import { getCfg, workspaceFolderFor, resolvePathSetting } from './util';
+import { HeatmapPanel } from './heatmapPanel';
 import { runCuThermo } from "./runner";
 import {
 	workspaceFolderFor,
@@ -289,35 +289,38 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 	context.subscriptions.push(runInTerminal);
 
-	// // in src/extension.ts
-	// const runAsTask = vscode.commands.registerCommand("cuthermo.runAsTask", async () => {
-	// 	const folder = workspaceFolderFor();
-	// 	if (!folder) return vscode.window.showWarningMessage("Open a folder/workspace first.");
 
-	// 	const soPath = resolvePathSetting("cuthermo.soPath", folder);
-	// 	const execPath = resolvePathSetting("cuthermo.execPath", folder);
-	// 	const workDir = resolveWorkDir(folder);
-	// 	const args = vscode.workspace.getConfiguration("cuthermo").get<string[]>("args") || [];
+	const openHeatmap = vscode.commands.registerCommand('cuthermo.openHeatmap', async (uri?: vscode.Uri) => {
+		try {
+			let target = uri;
+			const ed = vscode.window.activeTextEditor;
+			if (!target && ed) target = ed.document.uri;
 
-	// 	const cmd = `LD_PRELOAD='${soPath}' '${execPath}' ${args.map(a => `'${a}'`).join(" ")}`;
-	// 	const exec = new vscode.ShellExecution(cmd, { cwd: workDir });
+			if (!target) {
+				const pick = await vscode.window.showOpenDialog({
+					canSelectMany: false,
+					filters: { 'Text files': ['txt'], 'All files': ['*'] },
+					title: 'Pick an output_*.txt'
+				});
+				if (!pick || !pick[0]) return;
+				target = pick[0];
+			}
 
-	// 	const taskDef = { type: "shell", task: "cuThermo" };
-	// 	const task = new vscode.Task(taskDef, folder, "Run Current Target", "cuThermo", exec);
+			const base = path.basename(target.fsPath).toLowerCase();
+			if (!base.endsWith('.txt')) {
+				const ok = await vscode.window.showWarningMessage('Selected file is not .txt — continue?', 'Open', 'Cancel');
+				if (ok !== 'Open') return;
+			}
 
-	// 	const sub = vscode.tasks.onDidEndTaskProcess(async (e) => {
-	// 		if (e.execution === execution) {
-	// 			sub.dispose();
-	// 			// optional: scan outputs here and open newest file
-	// 			// const files = await glob(...); openTextDocument(...)
-	// 		}
-	// 	});
+			const panel = new HeatmapPanel(context, target.fsPath);
+			await panel.show();
 
-	// 	const execution = await vscode.tasks.executeTask(task);
-	// });
-	// context.subscriptions.push(runAsTask);
+		} catch (e: any) {
+			vscode.window.showErrorMessage(`Heatmap failed: ${e?.message || e}`);
+		}
+	});
 
-
+	context.subscriptions.push(openHeatmap);
 }
 
 export function deactivate() { }
