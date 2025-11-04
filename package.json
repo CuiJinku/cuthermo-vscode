@@ -28,20 +28,29 @@
       {
         "command": "cuthermo.setWorkDir",
         "title": "cuThermo: Set Work Directory"
+      },
+      {
+        "command": "cuthermo.runInTerminal",
+        "title": "cuThermo: Run in Terminal"
       }
     ],
     "configuration": {
       "title": "cuThermo",
       "properties": {
-        "cuthermo.soPath": {
-          "type": "string",
-          "default": "${workspaceFolder}/tools/cuThermostat/cuThermostat.so",
-          "description": "Path to cuThermostat.so (NVBit tool). If empty, the extension will use its bundled asset when available."
-        },
         "cuthermo.execPath": {
           "type": "string",
-          "default": "${workspaceFolder}/test-apps/vectoradd/vectoradd",
-          "description": "Path to CUDA executable (we'll run it with LD_PRELOAD later)."
+          "default": "${workspaceFolder}/a.out",
+          "description": "Path to the CUDA executable in the workspace (adjust if you name it differently)."
+        },
+        "cuthermo.soPath": {
+          "type": "string",
+          "default": "${workspaceFolder}/cuThermostat.so",
+          "description": "Path to cuThermostat.so in the workspace folder."
+        },
+        "cuthermo.workDir": {
+          "type": "string",
+          "default": "${workspaceFolder}",
+          "description": "Working directory (the opened folder)."
         },
         "cuthermo.args": {
           "type": "array",
@@ -50,11 +59,6 @@
           },
           "default": [],
           "description": "Arguments passed to the CUDA executable"
-        },
-        "cuthermo.workDir": {
-          "type": "string",
-          "default": "",
-          "description": "Working directory where output files appear."
         },
         "cuthermo.outputGlob": {
           "type": "string",

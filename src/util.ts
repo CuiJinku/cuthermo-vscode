@@ -8,12 +8,9 @@ export function getCfg<T>(key: string, fallback?: T): T {
         .get<T>(key, fallback as T);
 }
 
-export function workspaceFolderFor(
-    uri?: vscode.Uri
-): vscode.WorkspaceFolder | undefined {
-    if (uri) return vscode.workspace.getWorkspaceFolder(uri);
-    const folders = vscode.workspace.workspaceFolders;
-    return folders && folders.length > 0 ? folders[0] : undefined;
+export function workspaceFolderFor(uri?: vscode.Uri) {
+  if (uri) return vscode.workspace.getWorkspaceFolder(uri);
+  return vscode.workspace.workspaceFolders?.[0];
 }
 
 export function resolveVars(
@@ -27,22 +24,32 @@ export function resolveVars(
     return input.replace(/\$\{workspaceFolder\}/g, root);
 }
 
-export function resolvePathSetting(
-    key: string,
-    folder?: vscode.WorkspaceFolder
-): string {
-    return path.resolve(resolveVars(getCfg<string>(key) || "", folder));
+
+export function resolvePathSetting(key: string, ws?: vscode.WorkspaceFolder): string {
+  const raw = vscode.workspace.getConfiguration().get<string>(key) || '';
+  const home = process.env.HOME || process.env.USERPROFILE || '';
+  const wsPath = ws?.uri.fsPath ?? '';
+
+  return raw
+    .replace(/\$\{workspaceFolder\}/g, wsPath)
+    .replace(/\$\{home\}/g, home);
 }
 
-export function resolveWorkDir(folder?: vscode.WorkspaceFolder): string {
-  const configured = resolvePathSetting('cuthermo.workDir', folder);
-  if (configured && fs.existsSync(configured)) return configured;
+export function resolveWorkDir(ws?: vscode.WorkspaceFolder): string {
+  const configured = resolvePathSetting('cuthermo.workDir', ws);
+  return configured || ws?.uri.fsPath || process.cwd();
+}
 
-  const execPath = resolvePathSetting('cuthermo.execPath', folder);
-  if (execPath && fs.existsSync(execPath)) return path.dirname(execPath);
+export function activeEditorInfo() {
+  const ed = vscode.window.activeTextEditor;
+  const ws = ed
+    ? vscode.workspace.getWorkspaceFolder(ed.document.uri) ?? vscode.workspace.workspaceFolders?.[0]
+    : vscode.workspace.workspaceFolders?.[0];
 
-  if (folder) return folder.uri.fsPath;
+  const filePath = ed?.document?.uri.fsPath;
+  const fileDir = filePath ? path.dirname(filePath) : undefined;
+  const fileBase = filePath ? path.basename(filePath) : undefined;
+  const fileBaseNoExt = fileBase ? fileBase.replace(/\.[^.]+$/, '') : undefined;
 
-  // No workspace open and no settings to infer from:
-  throw new Error('No workspace folder open and no workDir/execPath set.');
+  return { ws, ed, filePath, fileDir, fileBase, fileBaseNoExt };
 }
