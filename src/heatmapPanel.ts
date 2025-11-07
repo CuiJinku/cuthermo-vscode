@@ -6,35 +6,100 @@ import * as path from 'path';
 type Row = { sectorTag: string; frequencies: (number | string)[] }; // 9 cells
 
 function parseTxtHeatmap(txt: string): Row[] {
-  const rows: Row[] = [];
-  const lines = txt.split(/\r?\n/);
-  for (const raw of lines) {
-    const line = raw.trim();
-    if (!line) continue;
+    const rows: Row[] = [];
+    const lines = txt.split(/\r?\n/);
+    for (const raw of lines) {
+        const line = raw.trim();
+        if (!line) continue;
 
-    // Split by comma or whitespace
-    const toks = line.split(/(?:,|\s)+/).map(s => s.trim()).filter(Boolean);
-    if (toks.length < 10) continue;
+        // Split by comma or whitespace
+        const toks = line.split(/(?:,|\s)+/).map(s => s.trim()).filter(Boolean);
+        if (toks.length < 10) continue;
 
-    // Handle "Sector:" prefix + number
-    let sectorTag = toks[0];
-    if (sectorTag.toLowerCase() === "sector:" && toks[1]) {
-      const maybeHex = toks[1].startsWith("0x") ? toks[1] : "0x" + toks[1];
-      sectorTag = `Sector: ${maybeHex.toLowerCase()}`;
-      toks.splice(0, 2); // remove first two tokens from frequency array
+        // Handle "Sector:" prefix + number
+        let sectorTag = toks[0];
+        if (sectorTag.toLowerCase() === "sector:" && toks[1]) {
+            const maybeHex = toks[1].startsWith("0x") ? toks[1] : "0x" + toks[1];
+            sectorTag = `Sector: ${maybeHex.toLowerCase()}`;
+            toks.splice(0, 2); // remove first two tokens from frequency array
+        }
+
+        const freqs = toks.slice(0, 9).map(x =>
+            (x === '^' || x === 'v' || x === '.' || x === '|') ? x : Number(x)
+        );
+
+        if (sectorTag !== '0x...........' &&
+            freqs.some(v => typeof v === 'number' && Number.isNaN(v))) continue;
+
+        rows.push({ sectorTag, frequencies: freqs });
+    }
+    return rows;
+}
+
+function collapseDuplicateRuns(input: Row[]): Row[] {
+    const out: Row[] = [];
+    let duplicateBuffer: Row[] = [];        // up to 10 rows
+    let duplicateCount = 0;                 // # beyond the buffer
+    let lastFreqKey: string | undefined;    // string key of the 9-tuple
+
+    const keyOf = (freqs: (number | string)[]) => freqs.map(String).join('\u0001');
+
+    const mockRow = (value: string): Row => ({
+        sectorTag: '0x...........',
+        frequencies: Array.from({ length: 9 }, (_, i) => (i === 5 ? value : '.'))
+    });
+
+    const flush = () => {
+        if (!duplicateBuffer.length) return;
+        // We were tracking a run of identical frequency rows (key = lastFreqKey).
+        if (duplicateCount > 0) {
+            // Collapsed form: first occurrence, ^, count, v, last occurrence
+            const first = duplicateBuffer[0];
+            const last = duplicateBuffer[duplicateBuffer.length - 1];
+            // Ensure we output first and last with the repeated frequencies
+            const freqs = first.frequencies;
+            out.push({ sectorTag: first.sectorTag, frequencies: freqs });
+            out.push(mockRow('^'));
+            out.push(mockRow(String(duplicateCount)));
+            out.push(mockRow('v'));
+            out.push({ sectorTag: last.sectorTag, frequencies: freqs });
+        } else {
+            // < 11 total duplicates → output buffer verbatim
+            out.push(...duplicateBuffer);
+        }
+        // reset
+        duplicateBuffer = [];
+        duplicateCount = 0;
+    };
+
+    for (const row of input) {
+        const k = keyOf(row.frequencies);
+        if (lastFreqKey === undefined || k === lastFreqKey) {
+            // same as previous run (or first row)
+            if (duplicateBuffer.length < 10) {
+                duplicateBuffer.push(row);
+            } else {
+                // beyond the 10-row buffer: only update last sectorTag and count
+                duplicateBuffer[duplicateBuffer.length - 1] = {
+                    sectorTag: row.sectorTag,
+                    frequencies: row.frequencies
+                };
+                duplicateCount += 1;
+            }
+        } else {
+            // run breaks → flush previous run and start new
+            flush();
+            duplicateBuffer = [row];
+        }
+        lastFreqKey = k;
     }
 
-    const freqs = toks.slice(0, 9).map(x =>
-      (x === '^' || x === 'v' || x === '.' || x === '|') ? x : Number(x)
-    );
+    // final flush
+    flush();
 
-    if (sectorTag !== '0x...........' &&
-        freqs.some(v => typeof v === 'number' && Number.isNaN(v))) continue;
-
-    rows.push({ sectorTag, frequencies: freqs });
-  }
-  return rows;
+    return out;
 }
+
 
 export class HeatmapPanel {
     private panel: vscode.WebviewPanel | undefined;
@@ -47,7 +112,9 @@ export class HeatmapPanel {
 
     async show() {
         const txt = await fs.readFile(this.filePath, 'utf8');
-        this.allRows = parseTxtHeatmap(txt);
+        const parsed = parseTxtHeatmap(txt);          // raw rows
+        this.allRows = collapseDuplicateRuns(parsed); // 🔥 apply your Python logic
+
 
         const webview = this.createPanel().webview;
         webview.html = this.getHtml(webview);
