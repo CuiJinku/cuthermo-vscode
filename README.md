@@ -13,96 +13,122 @@
   Profiling results are parsed and displayed in a custom WebView panel, showing a live heatmap of memory sector activity.
 
 - **Duplicate-row collapsing**  
-  The heatmap applies intelligent preprocessing (same logic as your web-based heatmap tool) to compress repetitive frequency rows for a more readable visualization.
+  The heatmap applies intelligent preprocessing (same logic as your web-based tool) to compress repetitive frequency rows.
 
 - **Environment validation**  
-  Includes a command to check CUDA toolkit, `nvcc`, GPU availability, and whether `cuThermostat.so` is correctly placed.
+  Includes a command to check CUDA toolkit, `nvcc`, GPU availability, and the location of `cuThermostat.so`.
 
 - **Configurable executable selection**  
-  Users can specify any CUDA executable, not just `a.out`.
+  The extension helps you select which binary to run (e.g., `add`, `matmul`, etc.).
 
 ---
 
 ## 📦 Requirements
 
-To use cuThermo effectively:
+To use cuThermo effectively, your **remote machine (with CUDA)** should have:
 
-- **CUDA Toolkit** (nvcc available in PATH)  
-- **NVIDIA GPU + drivers**  
-- **cuThermostat.so**  
-  - Either bundled or installed into the workspace  
-  - The extension includes a command to copy/verify the shared library
+- **CUDA Toolkit** (nvcc available in PATH)
+- **NVIDIA GPU + driver**
+- **cuThermostat.so** (either bundled or installed using the extension command)
+
+Your **local computer** (Mac/Windows/Linux) does **not** need CUDA — it only hosts the editor UI.
 
 Optional but recommended:
 
 - VS Code C++ extension  
-- NVIDIA Nsight Systems (for advanced users)
+- NVIDIA Nsight Systems (for advanced manual analysis)
 
 ---
 
-## Install cuThermo for the course
+# 📥 Install cuThermo
 
-1. Download the latest `.vsix` from the Releases page:
-   - https://github.com/CuiJinku/cuthermo-vscode/releases
-2. In VS Code: Extensions → `…` menu → *Install from VSIX…*
-3. Select the downloaded `JinkuCui.cuthermo-0.0.3.vsix`.
+There are **two cases** depending on whether you use:
 
----
-
-## ⚙️ Extension Settings
-
-This extension contributes the following settings:
-
-### `cuthermo.execPath`
-Path to the target executable (e.g. `./mykernel`, `build/add`, etc.).
-
-### `cuthermo.thermostatPath`
-Path to `cuThermostat.so` if you want to override the default bundled version.
-
-### `cuthermo.autoOpenHeatmap`
-Whether to automatically open the heatmap window after each profiling run.
+1. **VS Code locally** (opening a folder on your machine)  
+2. **VS Code Remote-SSH** (connecting to a CUDA server)
 
 ---
 
-## 🧩 Commands
+## 1. Installing locally (simple)
 
-| Command | Description |
-|--------|-------------|
-| **cuThermo: Run on Current Target** | Profiles the selected CUDA executable and generates a heatmap. |
-| **cuThermo: Install cuThermostat.so to Workspace** | Copies the bundled shared library into your workspace. |
-| **cuThermo: Check Environment** | Verifies CUDA, GPU, and toolchain setup. |
+### Step 1 — Download the latest `.vsix`
 
----
+Latest releases are available at:
 
-## 🧪 Known Issues
+👉 https://github.com/CuiJinku/cuthermo-vscode/releases
 
-- Heatmap panel may not resize correctly on very small displays.  
-- Some unusual workspace structures may cause path resolution inconsistencies.  
-- Requires CUDA-compatible NVIDIA hardware — no support for AMD/ROCm yet.
+Download the asset named:
 
-Please report issues on the GitHub repo.
+`cuthermo-0.0.X.vsix`
+
+<!-- screenshot: download_vsix_from_releases -->
 
 ---
 
-## 📝 Release Notes
+### Step 2 — Install the `.vsix` in VS Code
 
-### 0.1.0
-- Initial public release
-- Heatmap visualization
-- Profile-run integration
-- Environment checking
-- Executable path configuration
+1. Open the **Extensions** panel.
+2. Click the `⋯` (More Actions) button in the top-right.
+3. Choose **Install from VSIX…**
+4. Select your downloaded `.vsix`.
 
----
-
-## 🔗 More Information
-
-- Documentation for developing VS Code extensions:  
-  https://code.visualstudio.com/api
-
-- cuThermo GitHub repository (if public):  
-  *(add link here)*
+<!-- screenshot: install_from_vsix_gui -->
 
 ---
 
-**Enjoy profiling with cuThermo!**
+## 2. Installing on a remote CUDA server (Remote-SSH)
+
+When profiling CUDA kernels, **cuThermo must be installed on the CUDA machine**, not your local laptop.
+
+### Step 1 — SSH into the remote machine
+
+```bash
+ssh your_ncsu_id@remote.cluster.edu
+```
+
+### Step 2 — Download the cuThermo `.vsix` to the remote machine
+
+Using **wget**:
+
+```bash
+wget https://github.com/CuiJinku/cuthermo-vscode/releases/download/v0.0.X/cuthermo-0.0.X.vsix
+```
+
+Or using **curl**:
+
+```bash
+curl -OL https://github.com/CuiJinku/cuthermo-vscode/releases/download/v0.0.X/cuthermo-0.0.X.vsix
+```
+(Replace 0.0.X with the latest version.)
+
+
+<!-- screenshot: terminal_wget_vsix -->
+
+### Step 3 — Install the extension on the remote VS Code server
+
+Once you've connected to the server using Remote-SSH at least once, VS Code Server is installed there.
+Then run:
+
+```bash
+code --install-extension cuthermo-0.0.X.vsix
+```
+
+To update or replace an older version:
+
+```bash
+code --uninstall-extension cuthermo
+code --install-extension cuthermo-0.0.X.vsix
+```
+<!-- screenshot: terminal_install_vsix -->
+
+### Step 4 — Verify installation
+
+Inside VS Code (connected via SSH):
+
+* Open the **Extensions** panel
+
+* Look under **Installed (Remote)**
+
+You should see:
+
+<!-- screenshot: extension_list_remote -->
