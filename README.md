@@ -40,6 +40,15 @@ Optional but recommended:
 
 ---
 
+## Install cuThermo for the course
+
+1. Download the latest `.vsix` from the Releases page:
+   - https://github.com/CuiJinku/cuthermo-vscode/releases
+2. In VS Code: Extensions → `…` menu → *Install from VSIX…*
+3. Select the downloaded `JinkuCui.cuthermo-0.0.3.vsix`.
+
+---
+
 ## ⚙️ Extension Settings
 
 This extension contributes the following settings:
