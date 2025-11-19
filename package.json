@@ -3,14 +3,21 @@
   "displayName": "cuThermo",
   "publisher": "JinkuCui",
   "description": "",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.104.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onCommand:cuthermo.checkEnv",
+    "onCommand:cuthermo.installBundledSo",
+    "onCommand:cuthermo.runProfile",
+    "onCommand:cuthermo.setWorkDir",
+    "onCommand:cuthermo.runInTerminal",
+    "onCommand:cuthermo.openHeatmap"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
