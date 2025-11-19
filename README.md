@@ -1,71 +1,99 @@
-# cuthermo README
+# cuThermo
 
-This is the README for your extension "cuthermo". After writing up a brief description, we recommend including the following sections.
-
-## Features
-
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+**cuThermo** is a Visual Studio Code extension that profiles CUDA applications and visualizes GPU memory-access heatmaps. It integrates with your CUDA toolchain and the bundled `cuThermostat.so` profiler to make GPU performance analysis easier, more intuitive, and fully interactive inside VS Code.
 
 ---
 
-## Following extension guidelines
+## 🚀 Features
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+- **Run GPU profiling directly in VS Code**  
+  Invoke *cuThermo: Run on Current Target* to execute the selected CUDA binary and collect memory-access traces.
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+- **Automatic heatmap visualization**  
+  Profiling results are parsed and displayed in a custom WebView panel, showing a live heatmap of memory sector activity.
 
-## Working with Markdown
+- **Duplicate-row collapsing**  
+  The heatmap applies intelligent preprocessing (same logic as your web-based heatmap tool) to compress repetitive frequency rows for a more readable visualization.
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
+- **Environment validation**  
+  Includes a command to check CUDA toolkit, `nvcc`, GPU availability, and whether `cuThermostat.so` is correctly placed.
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
+- **Configurable executable selection**  
+  Users can specify any CUDA executable, not just `a.out`.
 
-## For more information
+---
 
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+## 📦 Requirements
 
-**Enjoy!**
+To use cuThermo effectively:
+
+- **CUDA Toolkit** (nvcc available in PATH)  
+- **NVIDIA GPU + drivers**  
+- **cuThermostat.so**  
+  - Either bundled or installed into the workspace  
+  - The extension includes a command to copy/verify the shared library
+
+Optional but recommended:
+
+- VS Code C++ extension  
+- NVIDIA Nsight Systems (for advanced users)
+
+---
+
+## ⚙️ Extension Settings
+
+This extension contributes the following settings:
+
+### `cuthermo.execPath`
+Path to the target executable (e.g. `./mykernel`, `build/add`, etc.).
+
+### `cuthermo.thermostatPath`
+Path to `cuThermostat.so` if you want to override the default bundled version.
+
+### `cuthermo.autoOpenHeatmap`
+Whether to automatically open the heatmap window after each profiling run.
+
+---
+
+## 🧩 Commands
+
+| Command | Description |
+|--------|-------------|
+| **cuThermo: Run on Current Target** | Profiles the selected CUDA executable and generates a heatmap. |
+| **cuThermo: Install cuThermostat.so to Workspace** | Copies the bundled shared library into your workspace. |
+| **cuThermo: Check Environment** | Verifies CUDA, GPU, and toolchain setup. |
+
+---
+
+## 🧪 Known Issues
+
+- Heatmap panel may not resize correctly on very small displays.  
+- Some unusual workspace structures may cause path resolution inconsistencies.  
+- Requires CUDA-compatible NVIDIA hardware — no support for AMD/ROCm yet.
+
+Please report issues on the GitHub repo.
+
+---
+
+## 📝 Release Notes
+
+### 0.1.0
+- Initial public release
+- Heatmap visualization
+- Profile-run integration
+- Environment checking
+- Executable path configuration
+
+---
+
+## 🔗 More Information
+
+- Documentation for developing VS Code extensions:  
+  https://code.visualstudio.com/api
+
+- cuThermo GitHub repository (if public):  
+  *(add link here)*
+
+---
+
+**Enjoy profiling with cuThermo!**
