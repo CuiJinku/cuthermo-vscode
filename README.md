@@ -68,9 +68,15 @@ Download the asset named:
 ### Step 2 — Install the `.vsix` in VS Code
 
 1. Open the **Extensions** panel.
+![open the Extension panel](images/open_the_extension_panel.png)
+
 2. Click the `⋯` (More Actions) button in the top-right.
 3. Choose **Install from VSIX…**
+![Install from VSIX](images/install_from_vsix.png)
+
 4. Select your downloaded `.vsix`.
+![Select from local](images/select_from_local.png)
+
 
 <!-- screenshot: install_from_vsix_gui -->
 
@@ -94,6 +100,8 @@ Using **wget**:
 wget https://github.com/CuiJinku/cuthermo-vscode/releases/download/v0.0.X/cuthermo-0.0.X.vsix
 ```
 
+![wget_vsix](images/wget_vsix.png)
+
 Or using **curl**:
 
 ```bash
@@ -113,6 +121,8 @@ Then run:
 code --install-extension cuthermo-0.0.X.vsix
 ```
 
+![command install the vsix](images/code_install.png)
+
 To update or replace an older version:
 
 ```bash
@@ -131,4 +141,5 @@ Inside VS Code (connected via SSH):
 
 You should see:
 
+![installation check](images/install_check.png)
 <!-- screenshot: extension_list_remote -->
