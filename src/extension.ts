@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as cp from "child_process";
 import * as fs from "fs";
 import * as path from "path";
-import { HeatmapPanel } from './heatmapPanel';
+import { HeatmapPanel } from "./heatmapPanel";
 import { runCuThermo } from "./runner";
 import {
 	workspaceFolderFor,
@@ -34,6 +34,63 @@ function asBundledSo(context: vscode.ExtensionContext): string | undefined {
 
 async function ensureDir(p: string) {
 	await fs.promises.mkdir(p, { recursive: true });
+}
+
+async function ensureExecPath(
+	folder: vscode.WorkspaceFolder
+): Promise<string | undefined> {
+	const cfg = vscode.workspace.getConfiguration("cuthermo");
+	const raw = resolvePathSetting("cuthermo.execPath", folder);
+	const wsRoot = folder.uri.fsPath;
+
+	// If execPath is set and exists, just use it.
+	if (raw && fs.existsSync(raw)) {
+		return raw;
+	}
+
+	// Small heuristic: if active file is foo.cu and foo exists in same dir, propose that.
+	let suggestedUri: vscode.Uri | undefined;
+	const ed = vscode.window.activeTextEditor;
+	if (ed && ed.document.uri.fsPath.startsWith(wsRoot)) {
+		const srcPath = ed.document.uri.fsPath;
+		const dir = path.dirname(srcPath);
+		const base = path.basename(srcPath);
+		const stem = base.replace(/\.(cu|cpp|c|cc|cxx)$/, "");
+		const candidate = path.join(dir, stem);
+
+		if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+			suggestedUri = vscode.Uri.file(candidate);
+		}
+	}
+
+	// Ask the user to pick an executable
+	const pick = await vscode.window.showOpenDialog({
+		canSelectFiles: true,
+		canSelectFolders: false,
+		canSelectMany: false,
+		title: "Select executable to run under cuThermo",
+		defaultUri: suggestedUri ?? folder.uri,
+	});
+
+	if (!pick || !pick[0]) {
+		vscode.window.showWarningMessage(
+			"No executable selected; aborting cuThermo run."
+		);
+		return undefined;
+	}
+
+	const chosenFsPath = pick[0].fsPath;
+
+	// Save as workspace-relative path using ${workspaceFolder}
+	const relValue = chosenFsPath.startsWith(wsRoot)
+		? chosenFsPath.replace(wsRoot, "${workspaceFolder}")
+		: chosenFsPath;
+
+	await cfg.update("execPath", relValue, vscode.ConfigurationTarget.Workspace);
+
+	vscode.window.showInformationMessage(`cuThermo execPath set to: ${relValue}`);
+
+	return chosenFsPath;
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -86,7 +143,7 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 
 			// 3) workDir writable?
-			const workDir = resolveWorkDir(folder)
+			const workDir = resolveWorkDir(folder);
 			try {
 				await ensureDir(workDir);
 				await fs.promises.access(workDir, fs.constants.W_OK);
@@ -96,27 +153,41 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 
 			// 4) .so presence
-			const configuredSo = resolvePathSetting('cuthermo.soPath', folder);
+			const configuredSo = resolvePathSetting("cuthermo.soPath", folder);
 			const bundledSo = asBundledSo(context);
-			const configuredExists = configuredSo ? fs.existsSync(configuredSo) : false;
+			const configuredExists = configuredSo
+				? fs.existsSync(configuredSo)
+				: false;
 			const bundledExists = bundledSo ? fs.existsSync(bundledSo) : false;
 
 			if (configuredExists) {
 				out.appendLine(`\n[OK] cuThermostat.so (configured): ${configuredSo}`);
 			} else if (bundledExists) {
-				out.appendLine(`\n[OK] cuThermostat.so (bundled in extension): ${bundledSo}`);
-				out.appendLine('    Tip: Run “cuThermo: Install Bundled cuThermostat.so to Workspace”.');
+				out.appendLine(
+					`\n[OK] cuThermostat.so (bundled in extension): ${bundledSo}`
+				);
+				out.appendLine(
+					"    Tip: Run “cuThermo: Install Bundled cuThermostat.so to Workspace”."
+				);
 			} else {
-				out.appendLine('\n[!] cuThermostat.so not found.');
-				out.appendLine('    - Run the installer command, or');
-				out.appendLine('    - Set cuthermo.soPath (e.g., ${workspaceFolder}/cuThermostat.so).');
+				out.appendLine("\n[!] cuThermostat.so not found.");
+				out.appendLine("    - Run the installer command, or");
+				out.appendLine(
+					"    - Set cuthermo.soPath (e.g., ${workspaceFolder}/cuThermostat.so)."
+				);
 			}
 
-			out.appendLine('\n[Debug] Effective settings (expanded):');
+			out.appendLine("\n[Debug] Effective settings (expanded):");
 			out.appendLine(`  soPath    = ${configuredSo}`);
-			out.appendLine(`  execPath  = ${resolvePathSetting('cuthermo.execPath', folder)}`);
+			out.appendLine(
+				`  execPath  = ${resolvePathSetting("cuthermo.execPath", folder)}`
+			);
 			out.appendLine(`  workDir   = ${workDir}`);
-			out.appendLine(`  outputGlob= ${vscode.workspace.getConfiguration('cuthermo').get('outputGlob')}`);
+			out.appendLine(
+				`  outputGlob= ${vscode.workspace
+					.getConfiguration("cuthermo")
+					.get("outputGlob")}`
+			);
 
 			out.show(true);
 			vscode.window.showInformationMessage(
@@ -126,45 +197,50 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand('cuthermo.installBundledSo', async () => {
+		vscode.commands.registerCommand("cuthermo.installBundledSo", async () => {
 			const folder = workspaceFolderFor();
 			if (!folder) {
-				vscode.window.showWarningMessage('Open a folder/workspace first.');
+				vscode.window.showWarningMessage("Open a folder/workspace first.");
 				return;
 			}
 			const bundled = asBundledSo(context);
 			if (!bundled) {
-				vscode.window.showErrorMessage('No bundled cuThermostat.so found in this extension.');
+				vscode.window.showErrorMessage(
+					"No bundled cuThermostat.so found in this extension."
+				);
 				return;
 			}
 
 			const destDir = folder.uri.fsPath;
-			const dest = path.join(destDir, 'cuThermostat.so');
+			const dest = path.join(destDir, "cuThermostat.so");
 
 			try {
 				await ensureDir(destDir);
 				await fs.promises.copyFile(bundled, dest);
 				await fs.promises.chmod(dest, 0o755);
 
-				const cfg = vscode.workspace.getConfiguration('cuthermo');
+				const cfg = vscode.workspace.getConfiguration("cuthermo");
 				const scope = vscode.ConfigurationTarget.Workspace;
 
 				// Workspace-scoped defaults
-				await cfg.update('soPath', '${workspaceFolder}/cuThermostat.so', scope);
-				await cfg.update('workDir', '${workspaceFolder}', scope);
+				await cfg.update("soPath", "${workspaceFolder}/cuThermostat.so", scope);
+				await cfg.update("workDir", "${workspaceFolder}", scope);
 
 				// For execPath, we don’t guess a filename; default to a common a.out.
 				// Users can change this in Settings if they name their binary differently.
-				if (!cfg.get('execPath')) {
-					await cfg.update('execPath', '${workspaceFolder}/a.out', scope);
-				}
+				// if (!cfg.get("execPath")) {
+				// 	await cfg.update("execPath", "${workspaceFolder}/a.out", scope);
+				// }
 
-				vscode.window.showInformationMessage(`Installed cuThermostat.so → ${dest}`);
+				vscode.window.showInformationMessage(
+					`Installed cuThermostat.so → ${dest}`
+				);
 			} catch (e: any) {
-				vscode.window.showErrorMessage(`Failed to install .so: ${e?.message || e}`);
+				vscode.window.showErrorMessage(
+					`Failed to install .so: ${e?.message || e}`
+				);
 			}
 		})
-
 	);
 
 	context.subscriptions.push(
@@ -212,23 +288,27 @@ export function activate(context: vscode.ExtensionContext) {
 						const folder = workspaceFolderFor(uri);
 						if (folder) {
 							const soPath = resolvePathSetting("cuthermo.soPath", folder);
-							const execPath = resolvePathSetting("cuthermo.execPath", folder);
 							const workDir = resolveWorkDir(folder);
 							const args =
 								vscode.workspace
 									.getConfiguration("cuthermo")
 									.get<string[]>("args") || [];
 
-							const fullCmd = `LD_PRELOAD=${soPath} ${execPath} ${args.join(" ")}`;
+							const execPath = await ensureExecPath(folder);
+							if (!execPath) {
+								// User canceled; abort
+								return;
+							}
+
+							const fullCmd = `LD_PRELOAD=${soPath} ${execPath} ${args.join(
+								" "
+							)}`;
 							const ch = vscode.window.createOutputChannel("cuThermo Run");
 							ch.appendLine(`[Run Preview] ${fullCmd}`);
 							ch.appendLine(`[cwd] ${workDir}`);
 							ch.show(true);
 							vscode.window.showInformationMessage(`Running: ${fullCmd}`);
 						}
-
-
-
 
 						const res = await runCuThermo(uri);
 
@@ -262,63 +342,77 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	context.subscriptions.push(runCmd);
+	const runInTerminal = vscode.commands.registerCommand(
+		"cuthermo.runInTerminal",
+		async () => {
+			const folder = workspaceFolderFor();
+			if (!folder) {
+				return vscode.window.showWarningMessage(
+					"Open a folder/workspace first."
+				);
+			}
 
-	const runInTerminal = vscode.commands.registerCommand("cuthermo.runInTerminal", async () => {
-		const folder = workspaceFolderFor();
-		if (!folder) return vscode.window.showWarningMessage("Open a folder/workspace first.");
+			const soPath = resolvePathSetting("cuthermo.soPath", folder);
+			const workDir = resolveWorkDir(folder);
+			const args =
+				vscode.workspace.getConfiguration("cuthermo").get<string[]>("args") ||
+				[];
 
-		const soPath = resolvePathSetting("cuthermo.soPath", folder);
-		const execPath = resolvePathSetting("cuthermo.execPath", folder);
-		const workDir = resolveWorkDir(folder);
-		const args = vscode.workspace.getConfiguration("cuthermo").get<string[]>("args") || [];
+			const execPath = await ensureExecPath(folder);
+			if (!execPath) return; // user cancelled
 
-		// Prefer the active terminal; fall back to any existing; create only if none exist.
-		let term = vscode.window.activeTerminal ?? vscode.window.terminals[0];
-		if (!term) term = vscode.window.createTerminal({ name: "cuThermo" });
-		term.show(true);
+			let term = vscode.window.activeTerminal ?? vscode.window.terminals[0];
+			if (!term) term = vscode.window.createTerminal({ name: "cuThermo" });
+			term.show(true);
 
-		// Safe quoting for paths with spaces
-		const q = (s: string) => `"${s.replace(/"/g, '\\"')}"`;
+			const q = (s: string) => `"${s.replace(/"/g, '\\"')}"`;
 
-		// Move to the desired working directory in that same terminal session
-		term.sendText(`cd ${q(workDir)}`);
+			term.sendText(`cd ${q(workDir)}`);
 
-		// One-shot env assignment so LD_PRELOAD only applies to this process
-		const cmd = `LD_PRELOAD=${q(soPath)} ${q(execPath)} ${args.map(q).join(" ")}`;
-		term.sendText(cmd);
-	});
+			const cmd = `LD_PRELOAD=${q(soPath)} ${q(execPath)} ${args
+				.map(q)
+				.join(" ")}`;
+			term.sendText(cmd);
+		}
+	);
+
 	context.subscriptions.push(runInTerminal);
 
+	const openHeatmap = vscode.commands.registerCommand(
+		"cuthermo.openHeatmap",
+		async (uri?: vscode.Uri) => {
+			try {
+				let target = uri;
+				const ed = vscode.window.activeTextEditor;
+				if (!target && ed) target = ed.document.uri;
 
-	const openHeatmap = vscode.commands.registerCommand('cuthermo.openHeatmap', async (uri?: vscode.Uri) => {
-		try {
-			let target = uri;
-			const ed = vscode.window.activeTextEditor;
-			if (!target && ed) target = ed.document.uri;
+				if (!target) {
+					const pick = await vscode.window.showOpenDialog({
+						canSelectMany: false,
+						filters: { "Text files": ["txt"], "All files": ["*"] },
+						title: "Pick an output_*.txt",
+					});
+					if (!pick || !pick[0]) return;
+					target = pick[0];
+				}
 
-			if (!target) {
-				const pick = await vscode.window.showOpenDialog({
-					canSelectMany: false,
-					filters: { 'Text files': ['txt'], 'All files': ['*'] },
-					title: 'Pick an output_*.txt'
-				});
-				if (!pick || !pick[0]) return;
-				target = pick[0];
+				const base = path.basename(target.fsPath).toLowerCase();
+				if (!base.endsWith(".txt")) {
+					const ok = await vscode.window.showWarningMessage(
+						"Selected file is not .txt — continue?",
+						"Open",
+						"Cancel"
+					);
+					if (ok !== "Open") return;
+				}
+
+				const panel = new HeatmapPanel(context, target.fsPath);
+				await panel.show();
+			} catch (e: any) {
+				vscode.window.showErrorMessage(`Heatmap failed: ${e?.message || e}`);
 			}
-
-			const base = path.basename(target.fsPath).toLowerCase();
-			if (!base.endsWith('.txt')) {
-				const ok = await vscode.window.showWarningMessage('Selected file is not .txt — continue?', 'Open', 'Cancel');
-				if (ok !== 'Open') return;
-			}
-
-			const panel = new HeatmapPanel(context, target.fsPath);
-			await panel.show();
-
-		} catch (e: any) {
-			vscode.window.showErrorMessage(`Heatmap failed: ${e?.message || e}`);
 		}
-	});
+	);
 
 	context.subscriptions.push(openHeatmap);
 }
