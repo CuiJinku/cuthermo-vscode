@@ -296,3 +296,70 @@ Right click on the generated text file and choose "Open heatmap viewer"
 Finally, we can see the heatmap in the viewer:
 
 ![heatmap](images/heatmap.png)
+
+
+## Miscellaneous
+
+If you want to experience on my server, first email me your ssh **PUBLIC** (**NOT PRIVATE**) key
+
+And then SSH to the server with username `jcui23` and hostname `eb2-3224-lin10.csc.ncsu.edu`, and your ssh **PRIVATE** key.
+
+
+### 1. Config
+You can add an item in your ssh config file like follows:
+
+```YAML
+Host 4090
+  HostName eb2-3224-lin10.csc.ncsu.edu
+  User jcui23
+  IdentityFile /path/to/your/ssh-private-key
+```
+First, select the option `"Connect to Hosts"` after you click the connect icon on the left bottom corner
+
+![connect to hosts](images/connect_to_host.png)
+
+
+Next, choose the option `"Configure SSH Hosts..."`
+
+![configure ssh hosts](images/configure_ssh_hosts.png)
+
+
+After that, select the `config` file in the `.ssh` folder
+
+![ssh config file](images/ssh_config.png)
+
+
+In the config file, add the item like follows, but do remember to change the **IdentifyFile** path to yours, **NOT** mine.
+
+**NO NEED TO MODIFY THE OTHER THREE LINES.**
+
+![config item](images/config_item.png)
+
+Now we can see the `4090` option when we click the connect button on the bottom left corner again
+
+![4090 option](images/4090.png)
+
+Hit it, when you are successfully connected, you can see the name appears on the bottom left corner.
+
+![connected](images/connected.png)
+
+
+### 2. Set CUDA
+Once you get connected, you need to activate the CUDA environment to use the `nvcc` compiler to compile your CUDA program.
+
+Open the `terminal` in VS Code and then run the following command in terminal to activate the CUDA environment:
+
+```bash
+source /scratch/setenvs/setcuda12.1.sh
+```
+![source cuda](images/source_cuda.png)
+
+The following step is optional:
+```bash
+nvcc --version
+```
+The above command checks the compiler's version. Normal text will be printed out if you load the CUDA environment correctly.
+
+![nvcc checking](images/nvcc.png)
+
+Now you can use the nvcc to compile the CUDA source code (e.g. `main.cu`)
