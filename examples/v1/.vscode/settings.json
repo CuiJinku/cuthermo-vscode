@@ -1,0 +1,5 @@
+{
+    "cuthermo.soPath": "${workspaceFolder}/cuThermostat.so",
+    "cuthermo.workDir": "${workspaceFolder}",
+    "cuthermo.execPath": "${workspaceFolder}/gemm_patterns"
+}
