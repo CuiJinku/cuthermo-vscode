@@ -243,7 +243,12 @@ if conda env list | awk '{print $1}' | grep -qx "$ENV_NAME"; then
     log "Conda environment '$ENV_NAME' already exists. Reusing it."
 else
     log "Creating Conda environment '$ENV_NAME' with Python 3.11 ..."
-    conda create -y -n "$ENV_NAME" python=3.11
+    
+    conda create -y \
+        -n "$ENV_NAME" \
+        --override-channels \
+        -c conda-forge \
+        python=3.11
 fi
 
 conda activate "$ENV_NAME"
