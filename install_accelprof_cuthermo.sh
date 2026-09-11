@@ -69,7 +69,6 @@ verify_file() {
 
 require_command git
 require_command find
-require_command conda
 require_command nvcc
 require_command gcc
 require_command g++
@@ -187,8 +186,49 @@ fi
 
 log "Setting up Conda environment ..."
 
-CONDA_BASE="$(conda info --base)"
+find_conda() {
+    local candidate
+
+    # 1. Explicit override from user
+    if [[ -n "${CONDA_EXE:-}" && -x "${CONDA_EXE}" ]]; then
+        printf '%s\n' "$CONDA_EXE"
+        return 0
+    fi
+
+    # 2. Common user-local installations
+    for candidate in \
+        "$HOME/miniconda3/bin/conda" \
+        "$HOME/miniforge3/bin/conda" \
+        "$HOME/anaconda3/bin/conda" \
+        "/mnt/local/$USER/miniconda3/bin/conda" \
+        "/mnt/local/$USER/miniforge3/bin/conda" \
+        "/mnt/local/$USER/anaconda3/bin/conda"
+    do
+        if [[ -x "$candidate" ]]; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+
+    # 3. Fall back to PATH
+    candidate="$(type -P conda 2>/dev/null || true)"
+    if [[ -n "$candidate" && -x "$candidate" ]]; then
+        printf '%s\n' "$candidate"
+        return 0
+    fi
+
+    return 1
+}
+
+CONDA_EXE_PATH="$(find_conda)" || \
+    error "Could not locate a usable Conda installation."
+
+CONDA_BASE="$("$CONDA_EXE_PATH" info --base)"
 CONDA_SH="$CONDA_BASE/etc/profile.d/conda.sh"
+
+log "Using Conda:"
+printf ' executable: %s\n' "$CONDA_EXE_PATH"
+printf ' base:       %s\n' "$CONDA_BASE"
 
 if [[ ! -f "$CONDA_SH" ]]; then
     error "Could not find Conda shell initialization script at: $CONDA_SH"
