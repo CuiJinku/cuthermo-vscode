@@ -305,6 +305,8 @@ printf '  [OK] Required PyTorch header: %s\n' "$TORCH_ATEN_HEADER"
 # ------------------------------------------------------------
 
 export ACCEL_PROF_DIR="$REPO_DIR"
+export ACCEL_PROF_HOME="$ACCEL_PROF_DIR"
+export PATH="$ACCEL_PROF_HOME/bin:$PATH"
 export DEBUG="${DEBUG:-0}"
 
 log "Building AccelProf components explicitly ..."
@@ -314,14 +316,28 @@ printf '  DEBUG=%s\n' "$DEBUG"
 mkdir -p "$ACCEL_PROF_DIR/lib"
 
 # 7.1 Build libbacktrace if needed.
+
 log "Building libbacktrace (if needed) ..."
+
 cd "$ACCEL_PROF_DIR/sanalyzer/cpp_trace"
 
-if [[ ! -d "$ACCEL_PROF_DIR/build/backtrace" ]]; then
+BACKTRACE_ROOT="$ACCEL_PROF_DIR/build/backtrace"
+
+if [[ ! -f "$BACKTRACE_ROOT/lib/libbacktrace.a" && \
+      ! -f "$BACKTRACE_ROOT/lib64/libbacktrace.a" ]]; then
     # shellcheck disable=SC1091
     source "$ACCEL_PROF_DIR/bin/utils/build_libbacktrace"
 else
-    log "libbacktrace build directory already exists; skipping rebuild."
+    log "Existing libbacktrace library found; skipping rebuild."
+fi
+
+# ------------------------------------------------------------
+# Compatibility with upstream cpp_trace Makefile
+# ------------------------------------------------------------
+
+if [[ -d "$BACKTRACE_ROOT/lib" && ! -e "$BACKTRACE_ROOT/lib64" ]]; then
+    log "Creating lib64 compatibility symlink for libbacktrace ..."
+    ln -s lib "$BACKTRACE_ROOT/lib64"
 fi
 
 # 7.2 Build cpp_trace.
