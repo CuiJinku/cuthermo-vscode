@@ -506,6 +506,57 @@ else
 fi
 
 # ------------------------------------------------------------
+# Configure NVIDIA Compute Sanitizer runtime
+# ------------------------------------------------------------
+
+log "Locating NVIDIA Compute Sanitizer runtime ..."
+
+CUDA_NVCC="$(command -v nvcc || true)"
+
+if [[ -z "$CUDA_NVCC" ]]; then
+    error "nvcc was not found in PATH."
+fi
+
+CUDA_NVCC="$(readlink -f "$CUDA_NVCC")"
+CUDA_ROOT="$(dirname "$(dirname "$CUDA_NVCC")")"
+
+log "Detected CUDA installation:"
+printf ' nvcc:      %s\n' "$CUDA_NVCC"
+printf ' CUDA root: %s\n' "$CUDA_ROOT"
+
+SANITIZER_LIB="$(find "$CUDA_ROOT" \
+    -name 'libsanitizer-public.so' \
+    -type f \
+    -print -quit 2>/dev/null || true)"
+
+if [[ -z "$SANITIZER_LIB" ]]; then
+    error "Could not locate libsanitizer-public.so under CUDA installation: $CUDA_ROOT"
+fi
+
+SANITIZER_LIB_DIR="$(dirname "$SANITIZER_LIB")"
+
+log "Found Compute Sanitizer runtime:"
+printf ' %s\n' "$SANITIZER_LIB"
+
+export LD_LIBRARY_PATH="$SANITIZER_LIB_DIR:${LD_LIBRARY_PATH:-}"
+
+
+
+
+
+log "Checking AccelProf shared-library dependencies ..."
+
+MISSING_LIBS="$(
+    ldd "$ACCEL_PROF_HOME/lib/libcompute_sanitizer.so" \
+        | grep 'not found' || true
+)"
+
+if [[ -n "$MISSING_LIBS" ]]; then
+    printf '%s\n' "$MISSING_LIBS" >&2
+    error "AccelProf has unresolved shared-library dependencies."
+fi
+
+# ------------------------------------------------------------
 # 10. Download, compile, and profile CUDA heatmap examples
 # ------------------------------------------------------------
 
