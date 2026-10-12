@@ -224,18 +224,33 @@ CONDA_EXE_PATH="$(find_conda)" || \
     error "Could not locate a usable Conda installation."
 
 CONDA_BASE="$("$CONDA_EXE_PATH" info --base)"
-CONDA_SH="$CONDA_BASE/etc/profile.d/conda.sh"
 
 log "Using Conda:"
 printf ' executable: %s\n' "$CONDA_EXE_PATH"
 printf ' base:       %s\n' "$CONDA_BASE"
 
-if [[ ! -f "$CONDA_SH" ]]; then
-    error "Could not find Conda shell initialization script at: $CONDA_SH"
+# Initialize Conda in the current Bash shell.
+# Prefer the standard conda.sh file if it exists.
+# Fall back to the shell hook for module-managed installations.
+
+CONDA_SH="$CONDA_BASE/etc/profile.d/conda.sh"
+
+if [[ -f "$CONDA_SH" ]]; then
+    log "Initializing Conda using conda.sh ..."
+    source "$CONDA_SH"
+else
+    log "conda.sh not found. Trying Conda Bash shell hook ..."
+
+    CONDA_HOOK="$("$CONDA_EXE_PATH" shell.bash hook)" || \
+        error "Could not generate Conda Bash shell hook."
+
+    eval "$CONDA_HOOK"
 fi
 
-# shellcheck disable=SC1090
-source "$CONDA_SH"
+# Verify that Conda activation is available.
+if ! declare -F conda >/dev/null 2>&1; then
+    error "Conda shell initialization failed."
+fi
 
 ENV_NAME="${ENV_NAME:-accelprof}"
 
